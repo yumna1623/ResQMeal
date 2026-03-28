@@ -1,64 +1,87 @@
-// src/context/AuthContext.tsx
-// Global auth state — wraps the whole app so any screen can
-// call useAuth() to get the current user + their role
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
-
-// TypeScript: define what our context will hold
-type UserRole = 'hall' | 'ngo' | null;
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "../config/supabase";
 
 interface AuthContextType {
-  user: User | null;       // Firebase user object (has uid, email, etc.)
-  userRole: UserRole;      // 'hall' or 'ngo' — fetched from Firestore
-  loading: boolean;        // true while we're checking login status
+  user: any;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, role: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-// Create context with a default value of null
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// AuthProvider wraps App.tsx — all screens inside can read auth state
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // onAuthStateChanged fires whenever user logs in or out
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // User is logged in — fetch their role from Firestore
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          // Cast to UserRole since we know it's 'hall' or 'ngo'
-          setUserRole(userDoc.data().role as UserRole);
-        }
-        setUser(firebaseUser);
-      } else {
-        // User logged out — clear everything
-        setUser(null);
-        setUserRole(null);
-      }
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
 
-    // Cleanup listener when component unmounts
-    return unsubscribe;
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
+ const login = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    console.log("Login error:", error);
+    throw error;
+  }
+
+  console.log("Login success:", data);
+};
+
+const register = async (email: string, password: string, role: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+
+  console.log("Signup user:", data.user);
+
+  const user = data.user;
+
+  if (user) {
+    const { error: insertError } = await supabase.from("profiles").insert({
+      id: user.id,
+      email: user.email,
+      role: role,
+    });
+
+    if (insertError) {
+      console.log("Profile insert error:", insertError);
+    } else {
+      console.log("Profile inserted successfully");
+    }
+  }
+};
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, userRole, loading }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-// Custom hook — any screen does: const { user, userRole } = useAuth()
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  // Throw error if used outside AuthProvider — helpful for debugging
-  if (!context) throw new Error('useAuth must be used inside AuthProvider');
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);
