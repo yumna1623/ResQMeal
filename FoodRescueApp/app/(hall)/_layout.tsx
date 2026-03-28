@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function NgoLayout() {
+export default function HallLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -13,27 +13,37 @@ export default function NgoLayout() {
         tabBarActiveTintColor: "#22C55E",
       }}
     >
-      
       <Tabs.Screen
-        name="food-list"
+        name="dashboard"
         options={{
-          title: "Food",
+          title: "Dashboard",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="fast-food" size={22} color={color} />
+            <Ionicons name="home" size={22} color={color} />
           ),
         }}
       />
-<Tabs.Screen
-  name="pickup-status"
+      <Tabs.Screen
+  name="my-posts"
   options={{
-    title: "My Pickups",
+    title: "My Posts",
     tabBarIcon: ({ color }) => (
-      <Ionicons name="checkmark-done" size={22} color={color} />
+      <Ionicons name="list" size={22} color={color} />
     ),
   }}
 />
 
+      <Tabs.Screen
+        name="post-food"
+        options={{
+          title: "Post Food",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="add-circle" size={22} color={color} />
+          ),
+        }}
+      />
     </Tabs>
+
+    
     
   );
 }

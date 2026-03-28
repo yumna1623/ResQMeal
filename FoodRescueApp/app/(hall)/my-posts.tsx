@@ -4,55 +4,62 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { supabase } from "../../src/config/supabase";
 import { useAuth } from "../../src/context/AuthContext";
 
-export default function FoodList() {
+export default function MyPosts() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPosts = async () => {
+  const fetchMyPosts = async () => {
     const { data, error } = await supabase
       .from("food_posts")
       .select("*")
-      .eq("status", "available")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
       console.log("Fetch error:", error);
-    } else {
-      setPosts(data || []);
+      setLoading(false);
+      return;
     }
 
+    // 🔥 Fetch NGO email manually (NO RELATION ISSUES)
+    const updatedPosts = await Promise.all(
+      (data || []).map(async (post) => {
+        if (!post.picked_by) {
+          return { ...post, ngoEmail: null };
+        }
+
+        const { data: ngo, error: ngoError } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", post.picked_by)
+          .maybeSingle();
+
+        if (ngoError) {
+          console.log("NGO fetch error:", ngoError);
+        }
+
+        return {
+          ...post,
+          ngoEmail: ngo?.email || "Unknown",
+        };
+      })
+    );
+
+    setPosts(updatedPosts);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const handleAccept = async (id: string) => {
-    const { error } = await supabase
-      .from("food_posts")
-      .update({
-        status: "picked",
-        picked_by: user.id,
-      })
-      .eq("id", id);
-
-    if (error) {
-      console.log("Accept error:", error);
-      Alert.alert("Error", error.message);
-    } else {
-      Alert.alert("Success", "Pickup accepted!");
-      fetchPosts(); // refresh list
+    if (user) {
+      fetchMyPosts();
     }
-  };
+  }, [user]);
 
   if (loading) {
     return (
@@ -64,14 +71,14 @@ export default function FoodList() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Available Food</Text>
+      <Text style={styles.title}>My Food Posts</Text>
 
       {posts.length === 0 ? (
-        <Text style={styles.empty}>No food available</Text>
+        <Text style={styles.empty}>No posts yet</Text>
       ) : (
         <FlatList
           data={posts}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.text}>🍱 {item.title}</Text>
@@ -79,12 +86,17 @@ export default function FoodList() {
               <Text style={styles.text}>📍 {item.location}</Text>
               <Text style={styles.text}>⏰ {item.pickup_time}</Text>
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleAccept(item.id)}
-              >
-                <Text style={styles.buttonText}>Accept Pickup</Text>
-              </TouchableOpacity>
+              {/* STATUS */}
+              {item.picked_by ? (
+                <>
+                  <Text style={styles.picked}>✅ Picked</Text>
+                  <Text style={styles.ngo}>
+                    NGO: {item.ngoEmail}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.available}>🟢 Available</Text>
+              )}
             </View>
           )}
         />
@@ -126,15 +138,18 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginBottom: 4,
   },
-  button: {
-    marginTop: 10,
-    backgroundColor: "#22c55e",
-    padding: 10,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
+  available: {
+    color: "#22c55e",
+    marginTop: 5,
     fontWeight: "bold",
+  },
+  picked: {
+    color: "#facc15",
+    marginTop: 5,
+    fontWeight: "bold",
+  },
+  ngo: {
+    color: "#60a5fa",
+    marginTop: 4,
   },
 });

@@ -4,23 +4,21 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { supabase } from "../../src/config/supabase";
 import { useAuth } from "../../src/context/AuthContext";
 
-export default function FoodList() {
+export default function PickupStatus() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPosts = async () => {
+  const fetchPicked = async () => {
     const { data, error } = await supabase
       .from("food_posts")
       .select("*")
-      .eq("status", "available")
+      .eq("picked_by", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -33,26 +31,8 @@ export default function FoodList() {
   };
 
   useEffect(() => {
-    fetchPosts();
+    fetchPicked();
   }, []);
-
-  const handleAccept = async (id: string) => {
-    const { error } = await supabase
-      .from("food_posts")
-      .update({
-        status: "picked",
-        picked_by: user.id,
-      })
-      .eq("id", id);
-
-    if (error) {
-      console.log("Accept error:", error);
-      Alert.alert("Error", error.message);
-    } else {
-      Alert.alert("Success", "Pickup accepted!");
-      fetchPosts(); // refresh list
-    }
-  };
 
   if (loading) {
     return (
@@ -64,10 +44,10 @@ export default function FoodList() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Available Food</Text>
+      <Text style={styles.title}>My Pickups</Text>
 
       {posts.length === 0 ? (
-        <Text style={styles.empty}>No food available</Text>
+        <Text style={styles.empty}>No pickups yet</Text>
       ) : (
         <FlatList
           data={posts}
@@ -78,13 +58,7 @@ export default function FoodList() {
               <Text style={styles.text}>📦 {item.quantity}</Text>
               <Text style={styles.text}>📍 {item.location}</Text>
               <Text style={styles.text}>⏰ {item.pickup_time}</Text>
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleAccept(item.id)}
-              >
-                <Text style={styles.buttonText}>Accept Pickup</Text>
-              </TouchableOpacity>
+              <Text style={styles.status}>✅ Picked</Text>
             </View>
           )}
         />
@@ -126,15 +100,9 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginBottom: 4,
   },
-  button: {
-    marginTop: 10,
-    backgroundColor: "#22c55e",
-    padding: 10,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
+  status: {
+    color: "#22c55e",
+    marginTop: 5,
     fontWeight: "bold",
   },
 });
