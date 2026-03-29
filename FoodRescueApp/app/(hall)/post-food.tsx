@@ -17,65 +17,72 @@ export default function PostFood() {
   const [title, setTitle] = useState("");
   const [quantity, setQuantity] = useState("");
   const [location, setLocation] = useState("");
+
+  const [pickupDate, setPickupDate] = useState(""); // ✅ NEW
   const [pickupTime, setPickupTime] = useState("");
+  const [expiryTime, setExpiryTime] = useState("");
+
   const [loading, setLoading] = useState(false);
 
-  // ✅ PUBLIC API (Geocoding)
-const getCoordinatesFromLocation = async (locationText: string) => {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-      locationText
-    )}&format=json`;
+  // 🌍 API
+  const getCoordinatesFromLocation = async (locationText: string) => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+        locationText
+      )}&format=json`;
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "FoodRescueApp/1.0",
-      },
-    });
+      const response = await fetch(url, {
+        headers: { "User-Agent": "FoodRescueApp/1.0" },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    console.log("API Response:", data); // 🔍 debug
+      if (data && data.length > 0) {
+        return {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+        };
+      }
 
-    if (data && data.length > 0) {
-      return {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon),
-      };
-    } else {
+      return null;
+    } catch (error) {
+      console.log(error);
       return null;
     }
-  } catch (error) {
-    console.log("Geocoding error:", error);
-    return null;
-  }
-};
+  };
 
   const handlePost = async () => {
     try {
-      if (!title || !quantity || !location || !pickupTime) {
-        Alert.alert("Error", "Please fill all fields");
+      if (
+        !title ||
+        !quantity ||
+        !location ||
+        !pickupDate ||
+        !pickupTime ||
+        !expiryTime
+      ) {
+        Alert.alert("Error", "Fill all fields");
         return;
       }
 
       setLoading(true);
 
-      // 1. Convert location text → coordinates using API
       const coords = await getCoordinatesFromLocation(location);
 
       if (!coords) {
-        Alert.alert("Error", "Invalid or unrecognized location");
+        Alert.alert("Invalid location");
         return;
       }
 
-      // 2. Save to Supabase
       const { error } = await supabase.from("food_posts").insert([
         {
           user_id: user.id,
           title,
           quantity,
           location,
+          pickup_date: pickupDate, // ✅ NEW
           pickup_time: pickupTime,
+          expiry_time: expiryTime,
           latitude: coords.latitude,
           longitude: coords.longitude,
           status: "available",
@@ -85,11 +92,14 @@ const getCoordinatesFromLocation = async (locationText: string) => {
       if (error) {
         Alert.alert("Error", error.message);
       } else {
-        Alert.alert("Success", "Food posted with location!");
+        Alert.alert("Success", "Food posted!");
+
         setTitle("");
         setQuantity("");
         setLocation("");
+        setPickupDate("");
         setPickupTime("");
+        setExpiryTime("");
       }
     } catch (err) {
       console.log(err);
@@ -104,34 +114,53 @@ const getCoordinatesFromLocation = async (locationText: string) => {
 
       <TextInput
         placeholder="Food Title"
-        placeholderTextColor="#999"
         style={styles.input}
         value={title}
         onChangeText={setTitle}
+        placeholderTextColor="#999"
       />
 
       <TextInput
-        placeholder="Quantity (e.g. 10 boxes)"
-        placeholderTextColor="#999"
+        placeholder="Quantity"
         style={styles.input}
         value={quantity}
         onChangeText={setQuantity}
+        placeholderTextColor="#999"
       />
 
       <TextInput
-        placeholder="Location (e.g. Karachi DHA Phase 5)"
-        placeholderTextColor="#999"
+        placeholder="Location (Karachi DHA)"
         style={styles.input}
         value={location}
         onChangeText={setLocation}
+        placeholderTextColor="#999"
       />
 
+      {/* ✅ DATE */}
       <TextInput
-        placeholder="Pickup Time"
+        placeholder="Pickup Date (YYYY-MM-DD)"
+        style={styles.input}
+        value={pickupDate}
+        onChangeText={setPickupDate}
         placeholderTextColor="#999"
+      />
+
+      {/* ⏰ START */}
+      <TextInput
+        placeholder="Pickup Start Time (e.g. 6 PM)"
         style={styles.input}
         value={pickupTime}
         onChangeText={setPickupTime}
+        placeholderTextColor="#999"
+      />
+
+      {/* ⏳ END */}
+      <TextInput
+        placeholder="Collect Before (e.g. 9 PM)"
+        style={styles.input}
+        value={expiryTime}
+        onChangeText={setExpiryTime}
+        placeholderTextColor="#999"
       />
 
       <TouchableOpacity style={styles.button} onPress={handlePost}>
@@ -171,7 +200,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 10,
   },
   buttonText: {
     color: "#fff",

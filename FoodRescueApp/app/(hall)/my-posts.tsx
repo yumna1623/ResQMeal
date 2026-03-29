@@ -5,14 +5,19 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { supabase } from "../../src/config/supabase";
 import { useAuth } from "../../src/context/AuthContext";
 
 export default function MyPosts() {
   const { user } = useAuth();
+
   const [posts, setPosts] = useState<any[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
 
   const fetchMyPosts = async () => {
     const { data, error } = await supabase
@@ -27,33 +32,46 @@ export default function MyPosts() {
       return;
     }
 
-    // 🔥 Fetch NGO NAME instead of email
     const updatedPosts = await Promise.all(
       (data || []).map(async (post) => {
         if (!post.picked_by) {
           return { ...post, ngoName: null };
         }
 
-        const { data: ngo, error: ngoError } = await supabase
+        const { data: ngo } = await supabase
           .from("profiles")
-          .select("name") // ✅ FIXED
+          .select("name")
           .eq("id", post.picked_by)
           .maybeSingle();
 
-        if (ngoError) {
-          console.log("NGO fetch error:", ngoError);
-        }
-
         return {
           ...post,
-          ngoName: ngo?.name || "Unknown", // ✅ FIXED
+          ngoName: ngo?.name || "Unknown",
         };
       })
     );
 
     setPosts(updatedPosts);
+    setFilteredPosts(updatedPosts); // ✅ initially same
     setLoading(false);
   };
+
+  // 🔥 SEARCH FILTER
+  useEffect(() => {
+    const filtered = posts.filter((item) => {
+      const titleMatch = item.title
+        ?.toLowerCase()
+        .includes(search.toLowerCase());
+
+      const dateMatch = item.pickup_date
+        ?.toLowerCase()
+        .includes(search.toLowerCase());
+
+      return titleMatch || dateMatch;
+    });
+
+    setFilteredPosts(filtered);
+  }, [search, posts]);
 
   useEffect(() => {
     if (user) {
@@ -73,29 +91,47 @@ export default function MyPosts() {
     <View style={styles.container}>
       <Text style={styles.title}>My Food Posts</Text>
 
-      {posts.length === 0 ? (
-        <Text style={styles.empty}>No posts yet</Text>
+      {/* 🔍 SEARCH BAR */}
+      <TextInput
+        placeholder="Search by food or date..."
+        placeholderTextColor="#999"
+        style={styles.search}
+        value={search}
+        onChangeText={setSearch}
+      />
+
+      {filteredPosts.length === 0 ? (
+        <Text style={styles.empty}>No matching posts</Text>
       ) : (
         <FlatList
-          data={posts}
+          data={filteredPosts}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.text}>🍱 {item.title}</Text>
               <Text style={styles.text}>📦 {item.quantity}</Text>
               <Text style={styles.text}>📍 {item.location}</Text>
+              <Text style={styles.text}>📅 {item.pickup_date}</Text>
               <Text style={styles.text}>⏰ {item.pickup_time}</Text>
+              <Text style={styles.text}>⏳ {item.expiry_time}</Text>
 
               {/* STATUS */}
-              {item.picked_by ? (
-                <>
-                  <Text style={styles.picked}>✅ Picked</Text>
-                  <Text style={styles.ngo}>
-                    NGO: {item.ngoName}
-                  </Text>
-                </>
-              ) : (
+              {item.status === "available" && (
                 <Text style={styles.available}>🟢 Available</Text>
+              )}
+
+              {item.status === "accepted" && (
+                <>
+                  <Text style={styles.accepted}>🟡 Accepted</Text>
+                  <Text style={styles.ngo}>NGO: {item.ngoName}</Text>
+                </>
+              )}
+
+              {item.status === "picked" && (
+                <>
+                  <Text style={styles.picked}>🔵 Picked</Text>
+                  <Text style={styles.ngo}>NGO: {item.ngoName}</Text>
+                </>
               )}
             </View>
           )}
@@ -123,6 +159,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
+  search: {
+    backgroundColor: "#1e293b",
+    padding: 10,
+    borderRadius: 8,
+    color: "#fff",
+    marginBottom: 15,
+  },
   empty: {
     color: "#aaa",
     textAlign: "center",
@@ -143,13 +186,18 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontWeight: "bold",
   },
-  picked: {
+  accepted: {
     color: "#facc15",
     marginTop: 5,
     fontWeight: "bold",
   },
-  ngo: {
+  picked: {
     color: "#60a5fa",
+    marginTop: 5,
+    fontWeight: "bold",
+  },
+  ngo: {
+    color: "#c084fc",
     marginTop: 4,
   },
 });

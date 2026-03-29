@@ -44,7 +44,7 @@ export default function FoodList() {
         { event: "*", schema: "public", table: "food_posts" },
         () => {
           fetchPosts();
-        }
+        },
       )
       .subscribe();
 
@@ -101,11 +101,12 @@ export default function FoodList() {
 
   return (
     <View style={styles.container}>
+      
+
+      <Text style={styles.title}>Available Food</Text>
       <TouchableOpacity onPress={fetchPosts} style={{ marginBottom: 10 }}>
         <Text style={{ color: "#22c55e" }}>🔄 Refresh</Text>
       </TouchableOpacity>
-
-      <Text style={styles.title}>Available Food</Text>
 
       {posts.length === 0 ? (
         <Text style={styles.empty}>No food available</Text>
@@ -119,7 +120,9 @@ export default function FoodList() {
               <Text style={styles.text}>📦 {item.quantity}</Text>
               <Text style={styles.text}>📍 {item.location}</Text>
               <Text style={styles.text}>⏰ {item.pickup_time}</Text>
-
+              <Text>📅 Date: {item.pickup_date}</Text>
+              <Text>⏰ From: {item.pickup_time}</Text>
+              <Text>⏳ Until: {item.expiry_time}</Text>
               {/* View on Map */}
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: "#6366f1" }]}
@@ -149,20 +152,14 @@ export default function FoodList() {
               )}
 
               {/* Mark as Picked Button */}
-              {item.status === "accepted" &&
-                item.picked_by === user.id && (
-                  <TouchableOpacity
-                    style={[
-                      styles.button,
-                      { backgroundColor: "#3b82f6" },
-                    ]}
-                    onPress={() => handlePicked(item.id)}
-                  >
-                    <Text style={styles.buttonText}>
-                      Mark as Picked
-                    </Text>
-                  </TouchableOpacity>
-                )}
+              {item.status === "accepted" && item.picked_by === user.id && (
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: "#3b82f6" }]}
+                  onPress={() => handlePicked(item.id)}
+                >
+                  <Text style={styles.buttonText}>Mark as Picked</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         />
