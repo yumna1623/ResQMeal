@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { supabase } from "../../src/config/supabase";
 import { useAuth } from "../../src/context/AuthContext";
 
@@ -15,6 +16,7 @@ export default function FoodList() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchPosts = async () => {
     const { data, error } = await supabase
@@ -32,40 +34,60 @@ export default function FoodList() {
     setLoading(false);
   };
 
- useEffect(() => {
-  fetchPosts();
+  useEffect(() => {
+    fetchPosts();
 
-  const channel = supabase
-    .channel("food-posts-channel")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "food_posts" },
-      () => {
-        fetchPosts();
-      }
-    )
-    .subscribe();
+    const channel = supabase
+      .channel("food-posts-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_posts" },
+        () => {
+          fetchPosts();
+        }
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
+  // ✅ Accept pickup
   const handleAccept = async (id: string) => {
     const { error } = await supabase
       .from("food_posts")
       .update({
-        status: "picked",
+        status: "accepted",
         picked_by: user.id,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("status", "available");
 
     if (error) {
       console.log("Accept error:", error);
       Alert.alert("Error", error.message);
     } else {
-      Alert.alert("Success", "Pickup accepted!");
-      fetchPosts(); // refresh list
+      Alert.alert("Success", "Food accepted!");
+      fetchPosts();
+    }
+  };
+
+  // ✅ Mark as picked
+  const handlePicked = async (id: string) => {
+    const { error } = await supabase
+      .from("food_posts")
+      .update({
+        status: "picked",
+      })
+      .eq("id", id)
+      .eq("picked_by", user.id);
+
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      Alert.alert("Success", "Marked as picked!");
+      fetchPosts();
     }
   };
 
@@ -82,6 +104,7 @@ export default function FoodList() {
       <TouchableOpacity onPress={fetchPosts} style={{ marginBottom: 10 }}>
         <Text style={{ color: "#22c55e" }}>🔄 Refresh</Text>
       </TouchableOpacity>
+
       <Text style={styles.title}>Available Food</Text>
 
       {posts.length === 0 ? (
@@ -97,12 +120,49 @@ export default function FoodList() {
               <Text style={styles.text}>📍 {item.location}</Text>
               <Text style={styles.text}>⏰ {item.pickup_time}</Text>
 
+              {/* View on Map */}
               <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleAccept(item.id)}
+                style={[styles.button, { backgroundColor: "#6366f1" }]}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(ngo)/map",
+                    params: {
+                      latitude: item.latitude,
+                      longitude: item.longitude,
+                      title: item.title,
+                      location: item.location,
+                    },
+                  })
+                }
               >
-                <Text style={styles.buttonText}>Accept Pickup</Text>
+                <Text style={styles.buttonText}>View on Map</Text>
               </TouchableOpacity>
+
+              {/* Accept Button */}
+              {item.status === "available" && (
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => handleAccept(item.id)}
+                >
+                  <Text style={styles.buttonText}>Accept Pickup</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Mark as Picked Button */}
+              {item.status === "accepted" &&
+                item.picked_by === user.id && (
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      { backgroundColor: "#3b82f6" },
+                    ]}
+                    onPress={() => handlePicked(item.id)}
+                  >
+                    <Text style={styles.buttonText}>
+                      Mark as Picked
+                    </Text>
+                  </TouchableOpacity>
+                )}
             </View>
           )}
         />

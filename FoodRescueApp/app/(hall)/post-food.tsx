@@ -20,39 +20,79 @@ export default function PostFood() {
   const [pickupTime, setPickupTime] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handlePost = async () => {
-    if (!title || !quantity || !location || !pickupTime) {
-      Alert.alert("Error", "Please fill all fields");
-      return;
+  // ✅ PUBLIC API (Geocoding)
+const getCoordinatesFromLocation = async (locationText: string) => {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      locationText
+    )}&format=json`;
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "FoodRescueApp/1.0",
+      },
+    });
+
+    const data = await response.json();
+
+    console.log("API Response:", data); // 🔍 debug
+
+    if (data && data.length > 0) {
+      return {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+      };
+    } else {
+      return null;
     }
+  } catch (error) {
+    console.log("Geocoding error:", error);
+    return null;
+  }
+};
 
+  const handlePost = async () => {
     try {
-      setLoading(true);
-
-      const { error } = await supabase.from("food_posts").insert({
-        user_id: user.id,
-        title,
-        quantity,
-        location,
-        pickup_time: pickupTime,
-      });
-
-      if (error) {
-        console.log("Insert error:", error);
-        Alert.alert("Error", error.message);
+      if (!title || !quantity || !location || !pickupTime) {
+        Alert.alert("Error", "Please fill all fields");
         return;
       }
 
-      Alert.alert("Success", "Food posted successfully!");
+      setLoading(true);
 
-      // Reset fields
-      setTitle("");
-      setQuantity("");
-      setLocation("");
-      setPickupTime("");
+      // 1. Convert location text → coordinates using API
+      const coords = await getCoordinatesFromLocation(location);
 
-    } catch (err: any) {
-      Alert.alert("Error", err.message);
+      if (!coords) {
+        Alert.alert("Error", "Invalid or unrecognized location");
+        return;
+      }
+
+      // 2. Save to Supabase
+      const { error } = await supabase.from("food_posts").insert([
+        {
+          user_id: user.id,
+          title,
+          quantity,
+          location,
+          pickup_time: pickupTime,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          status: "available",
+        },
+      ]);
+
+      if (error) {
+        Alert.alert("Error", error.message);
+      } else {
+        Alert.alert("Success", "Food posted with location!");
+        setTitle("");
+        setQuantity("");
+        setLocation("");
+        setPickupTime("");
+      }
+    } catch (err) {
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -79,7 +119,7 @@ export default function PostFood() {
       />
 
       <TextInput
-        placeholder="Location"
+        placeholder="Location (e.g. Karachi DHA Phase 5)"
         placeholderTextColor="#999"
         style={styles.input}
         value={location}
