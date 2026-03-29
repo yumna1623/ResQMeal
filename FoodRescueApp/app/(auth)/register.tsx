@@ -11,11 +11,12 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("hall");
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState("");
 
   const handleRegister = async () => {
     try {
       setLoading(true);
-      await register(email, password, role);
+      await register(email, password, role,name);
       router.replace("/");
     } catch (error: any) {
       alert(error.message);
@@ -44,6 +45,13 @@ export default function RegisterScreen() {
         value={password}
         onChangeText={setPassword}
       />
+      <TextInput
+  placeholder="Hall / NGO Name"
+  placeholderTextColor="#999"
+  style={styles.input}
+  value={name}
+  onChangeText={setName}
+/>
 
       {/* ✅ ROLE SELECTION */}
       <View style={{ flexDirection: "row", marginBottom: 12 }}>

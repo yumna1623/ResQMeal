@@ -5,7 +5,12 @@ interface AuthContextType {
   user: any;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, role: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    role: string,
+    name: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -24,7 +29,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
-      }
+      },
     );
 
     return () => {
@@ -32,29 +37,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
- const login = async (email: string, password: string) => {
+const login = async (email: string, password: string) => {
+  const cleanEmail = email.trim().toLowerCase();
+
   const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.log("Login error:", error);
-    throw error;
-  }
-
-  console.log("Login success:", data);
-};
-
-const register = async (email: string, password: string, role: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
+    email: cleanEmail,
     password,
   });
 
   if (error) throw error;
 
-  console.log("Signup user:", data.user);
+  console.log("Login success:", data);
+};
+
+const register = async (
+  email: string,
+  password: string,
+  role: string,
+  name: string,
+) => {
+  const cleanEmail = email.trim().toLowerCase();
+
+  const { data, error } = await supabase.auth.signUp({
+    email: cleanEmail,
+    password,
+  });
+
+  if (error) throw error;
 
   const user = data.user;
 
@@ -63,13 +72,15 @@ const register = async (email: string, password: string, role: string) => {
       id: user.id,
       email: user.email,
       role: role,
+      name: name,
     });
 
     if (insertError) {
       console.log("Profile insert error:", insertError);
-    } else {
-      console.log("Profile inserted successfully");
+      throw insertError;
     }
+
+    console.log("Profile inserted successfully");
   }
 };
 

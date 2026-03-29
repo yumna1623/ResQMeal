@@ -27,16 +27,16 @@ export default function MyPosts() {
       return;
     }
 
-    // 🔥 Fetch NGO email manually (NO RELATION ISSUES)
+    // 🔥 Fetch NGO NAME instead of email
     const updatedPosts = await Promise.all(
       (data || []).map(async (post) => {
         if (!post.picked_by) {
-          return { ...post, ngoEmail: null };
+          return { ...post, ngoName: null };
         }
 
         const { data: ngo, error: ngoError } = await supabase
           .from("profiles")
-          .select("email")
+          .select("name") // ✅ FIXED
           .eq("id", post.picked_by)
           .maybeSingle();
 
@@ -46,7 +46,7 @@ export default function MyPosts() {
 
         return {
           ...post,
-          ngoEmail: ngo?.email || "Unknown",
+          ngoName: ngo?.name || "Unknown", // ✅ FIXED
         };
       })
     );
@@ -91,7 +91,7 @@ export default function MyPosts() {
                 <>
                   <Text style={styles.picked}>✅ Picked</Text>
                   <Text style={styles.ngo}>
-                    NGO: {item.ngoEmail}
+                    NGO: {item.ngoName}
                   </Text>
                 </>
               ) : (

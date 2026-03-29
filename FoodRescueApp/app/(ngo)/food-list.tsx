@@ -32,9 +32,24 @@ export default function FoodList() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
+ useEffect(() => {
+  fetchPosts();
+
+  const channel = supabase
+    .channel("food-posts-channel")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "food_posts" },
+      () => {
+        fetchPosts();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   const handleAccept = async (id: string) => {
     const { error } = await supabase
@@ -64,6 +79,9 @@ export default function FoodList() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={fetchPosts} style={{ marginBottom: 10 }}>
+        <Text style={{ color: "#22c55e" }}>🔄 Refresh</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Available Food</Text>
 
       {posts.length === 0 ? (

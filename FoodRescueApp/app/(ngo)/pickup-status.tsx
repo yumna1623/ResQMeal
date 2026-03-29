@@ -5,6 +5,7 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+    TouchableOpacity,
 } from "react-native";
 import { supabase } from "../../src/config/supabase";
 import { useAuth } from "../../src/context/AuthContext";
@@ -30,9 +31,24 @@ export default function PickupStatus() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchPicked();
-  }, []);
+ useEffect(() => {
+  fetchPicked();
+
+  const channel = supabase
+    .channel("pickup-channel")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "food_posts" },
+      () => {
+        fetchPicked();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   if (loading) {
     return (
@@ -43,8 +59,13 @@ export default function PickupStatus() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>My Pickups</Text>
+  <View style={styles.container}>
+    <Text style={styles.title}>My Pickups</Text>
+
+    {/* ✅ ADD THIS */}
+    <TouchableOpacity onPress={fetchPicked} style={{ marginBottom: 10 }}>
+      <Text style={{ color: "#22c55e" }}>🔄 Refresh</Text>
+    </TouchableOpacity>
 
       {posts.length === 0 ? (
         <Text style={styles.empty}>No pickups yet</Text>
