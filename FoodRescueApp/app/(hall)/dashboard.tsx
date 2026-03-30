@@ -19,38 +19,47 @@ export default function HallDashboard() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPosts = async () => {
-    const { data, error } = await supabase
-      .from("food_posts")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+const fetchPosts = async () => {
+  if (!user) return; // ✅ ADD THIS LINE
 
-    if (!error) setPosts(data || []);
-    setLoading(false);
+  const { data, error } = await supabase
+    .from("food_posts")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (!error) setPosts(data || []);
+  setLoading(false);
+};
+
+ useEffect(() => {
+  if (!user) return; // ✅ IMPORTANT
+
+  fetchPosts();
+
+  const channel = supabase
+    .channel("hall-posts")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "food_posts" },
+      fetchPosts
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
   };
+}, [user]); // ✅ ADD user dependency
 
-  useEffect(() => {
-    fetchPosts();
-
-    const channel = supabase
-      .channel("hall-posts")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "food_posts" },
-        fetchPosts
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const handleLogout = async () => {
+const handleLogout = async () => {
+  try {
     await logout();
-    router.replace("/login");
-  };
+    router.replace("/login"); // ✅ enough
+
+  } catch (error) {
+    Alert.alert("Error", "Logout failed");
+  }
+};
 
   const handleDelete = async (id: string) => {
     Alert.alert("Delete", "Are you sure?", [

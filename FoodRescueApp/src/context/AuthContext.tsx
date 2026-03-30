@@ -20,22 +20,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
+useEffect(() => {
+  const getSession = async () => {
+    const { data } = await supabase.auth.getSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      },
-    );
+    setUser(data.session?.user ?? null);
+    setLoading(false);
+  };
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  getSession();
+
+  const { data: listener } = supabase.auth.onAuthStateChange(
+    (_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false); // ✅ IMPORTANT FIX
+    }
+  );
+
+  return () => {
+    listener.subscription.unsubscribe();
+  };
+}, []);
 
 const login = async (email: string, password: string) => {
   const cleanEmail = email.trim().toLowerCase();
@@ -84,9 +89,16 @@ const register = async (
   }
 };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-  };
+ const logout = async () => {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    console.log("Logout error:", error);
+    throw error;
+  }
+
+  setUser(null); // ✅ force clear user state
+};
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout }}>

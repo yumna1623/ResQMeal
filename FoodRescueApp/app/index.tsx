@@ -8,50 +8,44 @@ export default function Index() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    const handleRedirect = async () => {
-      if (loading) return;
+useEffect(() => {
+  const handleRedirect = async () => {
+    if (loading) return;
 
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
-      // ✅ THIS IS WHERE YOUR CODE GOES
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-      if (error) {
-        console.log("Profile fetch error:", error);
-        return;
-      }
+    if (error || !data) {
+      router.replace("/login");
+      return;
+    }
 
-      if (!data) {
-        console.log("No profile found for user");
-        return;
-      }
+    if (data.role === "hall") {
+      router.replace("/(hall)/dashboard");
+    } else if (data.role === "ngo") {
+      router.replace("/(ngo)/food-list");
+    }
+  };
 
-      console.log("User role:", data.role);
+  handleRedirect();
+}, [user, loading]);
 
-      if (data.role === "hall") {
-        router.replace("/(hall)/dashboard");
-      } else if (data.role === "ngo") {
-        router.replace("/(ngo)/food-list");
-      }
-    };
-
-    handleRedirect();
-  }, [user, loading]);
-
+if (loading) {
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <ActivityIndicator size="large" />
       <Text style={{ color: "#fff", marginTop: 10 }}>
-        Loading dashboard...
+        Checking session...
       </Text>
     </View>
   );
+}
 }

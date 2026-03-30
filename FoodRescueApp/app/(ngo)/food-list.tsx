@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking, // ✅ ADD THIS
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../src/config/supabase";
@@ -98,11 +99,15 @@ export default function FoodList() {
       </View>
     );
   }
+  const handleNavigate = (lat: number, lng: number) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
+    Linking.openURL(url).catch(() => {
+      Alert.alert("Error", "Could not open maps");
+    });
+  };
   return (
     <View style={styles.container}>
-      
-
       <Text style={styles.title}>Available Food</Text>
       <TouchableOpacity onPress={fetchPosts} style={{ marginBottom: 10 }}>
         <Text style={{ color: "#22c55e" }}>🔄 Refresh</Text>
@@ -149,6 +154,7 @@ export default function FoodList() {
                 >
                   <Text style={styles.buttonText}>Accept Pickup</Text>
                 </TouchableOpacity>
+                
               )}
 
               {/* Mark as Picked Button */}
