@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Linking, // ✅ ADD THIS
+  Linking, 
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../src/config/supabase";
@@ -124,7 +124,7 @@ export default function FoodList() {
               style={styles.card}
               onPress={() =>
                 router.push({
-                  pathname: "/(ngo)/food-details",
+                  pathname: "/food-details",
                   params: { item: JSON.stringify(item) },
                 })
               }

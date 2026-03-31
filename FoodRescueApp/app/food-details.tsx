@@ -8,8 +8,8 @@ import {
   Linking,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { supabase } from "../../src/config/supabase";
-import { useAuth } from "../../src/context/AuthContext";
+import { supabase } from "../src/config/supabase";
+import { useAuth } from "../src/context/AuthContext";
 
 export default function FoodDetails() {
   const { item } = useLocalSearchParams();
