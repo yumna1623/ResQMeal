@@ -18,9 +18,10 @@ export default function PostFood() {
   const [quantity, setQuantity] = useState("");
   const [location, setLocation] = useState("");
 
-  const [pickupDate, setPickupDate] = useState(""); // ✅ NEW
+  const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [expiryTime, setExpiryTime] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
 
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +29,7 @@ export default function PostFood() {
   const getCoordinatesFromLocation = async (locationText: string) => {
     try {
       const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-        locationText
+        locationText,
       )}&format=json`;
 
       const response = await fetch(url, {
@@ -57,6 +58,7 @@ export default function PostFood() {
         !title ||
         !quantity ||
         !location ||
+        !contactNumber || 
         !pickupDate ||
         !pickupTime ||
         !expiryTime
@@ -80,7 +82,8 @@ export default function PostFood() {
           title,
           quantity,
           location,
-          pickup_date: pickupDate, // ✅ NEW
+          contact_number: contactNumber,
+          pickup_date: pickupDate, 
           pickup_time: pickupTime,
           expiry_time: expiryTime,
           latitude: coords.latitude,
@@ -97,6 +100,7 @@ export default function PostFood() {
         setTitle("");
         setQuantity("");
         setLocation("");
+        setContactNumber("");
         setPickupDate("");
         setPickupTime("");
         setExpiryTime("");
@@ -161,6 +165,14 @@ export default function PostFood() {
         value={expiryTime}
         onChangeText={setExpiryTime}
         placeholderTextColor="#999"
+      />
+      <TextInput
+        placeholder="Contact Number"
+        style={styles.input}
+        value={contactNumber}
+        onChangeText={setContactNumber}
+        placeholderTextColor="#999"
+        keyboardType="phone-pad"
       />
 
       <TouchableOpacity style={styles.button} onPress={handlePost}>

@@ -120,53 +120,26 @@ export default function FoodList() {
           data={posts}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.text}>🍱 {item.title}</Text>
-              <Text style={styles.text}>📦 {item.quantity}</Text>
-              <Text style={styles.text}>📍 {item.location}</Text>
-              <Text style={styles.text}>⏰ {item.pickup_time}</Text>
-              <Text>📅 Date: {item.pickup_date}</Text>
-              <Text>⏰ From: {item.pickup_time}</Text>
-              <Text>⏳ Until: {item.expiry_time}</Text>
-              {/* View on Map */}
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#6366f1" }]}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(ngo)/map",
-                    params: {
-                      latitude: item.latitude,
-                      longitude: item.longitude,
-                      title: item.title,
-                      location: item.location,
-                    },
-                  })
-                }
-              >
-                <Text style={styles.buttonText}>View on Map</Text>
-              </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                router.push({
+                  pathname: "/(ngo)/food-details",
+                  params: { item: JSON.stringify(item) },
+                })
+              }
+            >
+              <View style={styles.rowBetween}>
+                <View>
+                  <Text style={styles.titleText}>🍱 {item.title}</Text>
+                  <Text style={styles.subText}>📦 {item.quantity}</Text>
+                  <Text style={styles.subText}>📅 {item.pickup_date}</Text>
+                </View>
 
-              {/* Accept Button */}
-              {item.status === "available" && (
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => handleAccept(item.id)}
-                >
-                  <Text style={styles.buttonText}>Accept Pickup</Text>
-                </TouchableOpacity>
-                
-              )}
-
-              {/* Mark as Picked Button */}
-              {item.status === "accepted" && item.picked_by === user.id && (
-                <TouchableOpacity
-                  style={[styles.button, { backgroundColor: "#3b82f6" }]}
-                  onPress={() => handlePicked(item.id)}
-                >
-                  <Text style={styles.buttonText}>Mark as Picked</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+                {/* Arrow */}
+                <Text style={styles.arrow}>➜</Text>
+              </View>
+            </TouchableOpacity>
           )}
         />
       )}
@@ -175,6 +148,29 @@ export default function FoodList() {
 }
 
 const styles = StyleSheet.create({
+  rowBetween: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+},
+
+titleText: {
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: "bold",
+},
+
+subText: {
+  color: "#94a3b8",
+  fontSize: 13,
+  marginTop: 2,
+},
+
+arrow: {
+  color: "#22c55e",
+  fontSize: 20,
+  fontWeight: "bold",
+},
   container: {
     flex: 1,
     backgroundColor: "#0f172a",
