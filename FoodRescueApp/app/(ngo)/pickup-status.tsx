@@ -72,30 +72,7 @@ export default function PickupStatus() {
       fetchPicked();
     }
   };
- const handleDelete = async (id: string) => {
-  Alert.alert("Delete", "Are you sure?", [
-    { text: "Cancel" },
-    {
-      text: "Delete",
-      onPress: async () => {
-        const { error } = await supabase
-          .from("food_posts")
-          .delete()
-          .eq("id", id)
-          .eq("picked_by", user.id);
 
-        if (error) {
-          Alert.alert("Error", error.message);
-        } else {
-          // ✅ REMOVE FROM UI IMMEDIATELY
-          setPosts((prev) => prev.filter((item) => item.id !== id));
-
-          Alert.alert("Deleted", "Removed successfully");
-        }
-      },
-    },
-  ]);
-};
 
   if (loading) {
     return (
@@ -141,13 +118,7 @@ export default function PickupStatus() {
               {item.status === "picked" && (
                 <Text style={styles.done}>✅ Picked Up</Text>
               )}
-              {/* DELETE BUTTON */}
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={() => handleDelete(item.id)}
-              >
-                <Text style={styles.deleteText}>🗑️ Delete</Text>
-              </TouchableOpacity>
+             
             </View>
           )}
         />
