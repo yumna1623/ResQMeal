@@ -1,0 +1,43 @@
+FoodRescueApp/
+│
+├── app/← Expo Router controls navigation from here
+│ │
+│ ├── _layout.tsx← Root layout — wraps whole app, AuthProvider goes here
+│ ├── index.tsx← Splash/entry — checks auth, redirects to login or tabs
+│ │
+│ ├── auth/← Screens before login (no tabs shown here)
+│ │ ├── _layout.tsx← Stack layout for auth screens
+│ │ ├── login.tsx← You
+│ │ └── register.tsx← You
+│ │
+│ ├── (hall)/← Hall Owner tab group (brackets = tab group in Expo Router)
+│ │ ├── _layout.tsx← Mohid — defines Hall Owner bottom tabs
+│ │ ├── post-food.tsx← Mohid — post leftover food
+│ │ ├── my-posts.tsx← Mohid — see own posts + status
+│ │ └── dashboard.tsx← Mohid — impact stats
+│ │
+│ └── (ngo)/← NGO tab group
+│ ├── _layout.tsx← You — defines NGO bottom tabs
+│ ├── food-list.tsx← You — list of available food
+│ ├── map.tsx← You — route to hall
+│ └── pickup-status.tsx← You — confirm pickup done
+│
+├── src/
+│ ├── config/
+│ │ └── firebase.ts← Firebase init
+│ │
+│ ├── context/
+│ │ └── AuthContext.tsx← Global user + role state
+│ │
+│ ├── types/
+│ │ └── index.ts← All shared TypeScript types
+│ │
+│ └── utils/
+│ └── firestoreHelpers.ts← Reusable Firestore functions
+│
+├── assets/
+├── tailwind.config.js
+├── nativewind-env.d.ts← still needed for TS
+├── babel.config.js
+├── app.json
+└── tsconfig.json
